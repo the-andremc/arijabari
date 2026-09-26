@@ -20,6 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/create.css">
 </head>
 <body>
   <canvas id="confetti" aria-hidden="true"></canvas>
@@ -31,6 +32,7 @@
       <a href="#episodes">Episodes</a>
       <a href="#faces">Faces</a>
       <a href="#gibberish">Gibberish</a>
+      <a href="/create" class="create-link">✨ Create yours</a>
     </nav>
     <button class="app-btn" id="installBtn" hidden>📲 Get the app</button>
     <button class="sub-btn" data-subscribe>Subscribe</button>
@@ -48,7 +50,7 @@
         <p class="tagline">Daily stories. Total gibberish. <strong>100% Ari.</strong></p>
         <div class="hero-ctas">
           <a href="#latest" class="btn btn-hot">▶ Watch the latest</a>
-          <button class="btn btn-ghost" data-subscribe>🔔 Get notified</button>
+          <a href="/create" class="btn btn-lime">✨ Create your own Jabari</a>
         </div>
         <p class="hint">psst… click his face 👉</p>
       </div>
@@ -136,6 +138,18 @@
           <button class="btn btn-hot" id="gibBtn">🌀 Generate</button>
           <button class="btn btn-ghost" id="gibCopy">📋 Copy</button>
         </div>
+      </div>
+    </section>
+
+    <!-- CREATE YOUR OWN -->
+    <section class="block cyo">
+      <div class="cyo-card">
+        <div>
+          <h2>CREATE YOUR OWN JABARI</h2>
+          <p>Your faces. Your gibberish. Your page. Upload your pics, pick your vibe and build a page of pure nonsense in about 60 seconds.</p>
+          <a href="/create" class="btn">✨ Create your own Jabari</a>
+        </div>
+        <div class="cyo-faces" aria-hidden="true"><span>🤪</span><span>😜</span><span>🙃</span></div>
       </div>
     </section>
 

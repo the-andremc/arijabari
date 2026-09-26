@@ -1,7 +1,7 @@
 // Offline support. Pages/scripts: network first (so new episodes show up straight away),
 // falling back to cache when offline. Photos/icons: cache first. Videos: never cached.
-const CACHE = "ari-v2";
-const SHELL = ["/", "/styles.css", "/app.js", "/data.js", "/manifest.webmanifest", "/icons/icon-192.png"];
+const CACHE = "ari-v3";
+const SHELL = ["/", "/create", "/create.css", "/create.js", "/styles.css", "/app.js", "/data.js", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

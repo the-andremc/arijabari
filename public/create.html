@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Create Your Own Jabari</title>
+  <meta name="description" content="Build your own page of pure nonsense. Your faces, your gibberish, your Jabari.">
+  <meta name="theme-color" content="#0d0b1a">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ari">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/create.css">
+</head>
+<body>
+  <header class="nav">
+    <a href="/" class="logo">ARI<span>JABARI</span></a>
+    <nav>
+      <a href="/#latest">Ari's episodes</a>
+      <a href="/#faces">Ari's faces</a>
+    </nav>
+    <a href="/" class="sub-btn back-btn">← Back to Ari</a>
+  </header>
+
+  <main class="create">
+    <section class="create-intro">
+      <p class="live-pill"><span class="dot"></span> BETA</p>
+      <h1 class="sec-title"><span>CREATE</span> YOUR OWN JABARI</h1>
+      <p class="sec-sub">Build a page of pure nonsense. Your faces. Your gibberish. Your rules.</p>
+      <p class="local-note">🔒 Your page is saved <b>only on this device</b> for now. Sign-up and sharing are coming soon.</p>
+    </section>
+
+    <div class="studio">
+      <!-- EDITOR -->
+      <form class="editor" id="editor" autocomplete="off" onsubmit="return false">
+        <fieldset>
+          <legend><span>1</span> Your name</legend>
+          <label>Big title (line 1)
+            <input name="name" maxlength="12" placeholder="ZARA">
+          </label>
+          <label>Big title (line 2)
+            <input name="line2" maxlength="12" placeholder="JABARI">
+          </label>
+          <label>Tagline
+            <input name="tagline" maxlength="60" placeholder="Daily chaos. Zero regrets.">
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend><span>2</span> Your faces</legend>
+          <p class="help">Upload up to 24 pics. Tap ⭐ to pick your main face. Only post pics of yourself, or people who said yes.</p>
+          <label class="drop" id="drop">
+            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            <b>📸 Add photos</b>
+            <span>or drag them here</span>
+          </label>
+          <div class="thumbs" id="thumbs"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span>3</span> Your vibe</legend>
+          <div class="themes" id="themes"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span>4</span> Stickers</legend>
+          <div class="three">
+            <input name="sticker0" maxlength="16" placeholder="NOT A BOT">
+            <input name="sticker1" maxlength="16" placeholder="CERTIFIED SILLY">
+            <input name="sticker2" maxlength="16" placeholder="MAIN CHARACTER">
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend><span>5</span> Things you say</legend>
+          <label>Speech bubbles <small>(one per line)</small>
+            <textarea name="bubbles" rows="5" maxlength="600"></textarea>
+          </label>
+          <label>Mood captions <small>(one per line)</small>
+            <textarea name="moods" rows="5" maxlength="1200"></textarea>
+          </label>
+        </fieldset>
+
+        <p class="help safety">🛡️ Keep it fun and keep it safe. Don't add your full name, address, school, phone number, or anything that says where you are.</p>
+
+        <div class="editor-actions">
+          <button type="button" class="btn btn-hot" id="fullBtn">👀 Full-screen preview</button>
+          <button type="button" class="btn btn-ghost" id="shareBtn">🔗 Share</button>
+          <button type="button" class="btn btn-ghost danger" id="resetBtn">🗑️ Start over</button>
+        </div>
+        <p class="saved" id="savedNote" aria-live="polite"></p>
+      </form>
+
+      <!-- PREVIEW -->
+      <div class="preview-wrap">
+        <p class="preview-label">LIVE PREVIEW</p>
+        <div class="preview" id="preview">
+          <button class="exit-full" id="exitFull" aria-label="Close preview">✕</button>
+          <div class="jb" id="jb">
+            <div class="jb-hero">
+              <h2 class="jb-title"><span class="l1" id="pvName"></span><span class="l2" id="pvLine2"></span></h2>
+              <p class="jb-tag" id="pvTag"></p>
+              <div class="jb-face-wrap">
+                <button class="jb-face" id="pvFace" aria-label="Click to change face"></button>
+                <div class="jb-bubble" id="pvBubble"></div>
+                <span class="jb-sticker k0" id="pvS0"></span>
+                <span class="jb-sticker k1" id="pvS1"></span>
+                <span class="jb-sticker k2" id="pvS2"></span>
+                <div class="jb-count"><span id="pvCount">0</span> faces pulled</div>
+              </div>
+            </div>
+
+            <div class="jb-ticker"><div class="jb-ticker-track" id="pvTicker"></div></div>
+
+            <section class="jb-sec">
+              <h3>MOOD ROULETTE</h3>
+              <div class="jb-roulette">
+                <div class="jb-slot" id="pvSlot"></div>
+                <p class="jb-mood" id="pvMood">Press spin. If you dare.</p>
+                <button class="btn btn-lime jb-spin" id="pvSpin">🎰 SPIN</button>
+              </div>
+            </section>
+
+            <section class="jb-sec">
+              <h3>THE FACE WALL</h3>
+              <div class="jb-wall" id="pvWall"></div>
+            </section>
+
+            <section class="jb-sec">
+              <h3>GIBBERISH GENERATOR</h3>
+              <div class="jb-gib">
+                <p id="pvGib">"So basically right, the toaster looked at me funny."</p>
+                <button class="btn btn-hot" id="pvGibBtn">🌀 Generate</button>
+              </div>
+            </section>
+
+            <p class="jb-foot">Made with <b>Create Your Own Jabari</b> · arijabari.com</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="/data.js"></script>
+  <script src="/create.js"></script>
+</body>
+</html>

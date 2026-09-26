@@ -326,3 +326,14 @@ a { color: inherit; }
   .app-btn { margin-left: auto; padding: 8px 12px; font-size: 14px; }
   .app-btn:not([hidden]) + .sub-btn { margin-left: 0; padding: 8px 12px; font-size: 14px; }
 }
+@media (max-width: 640px) {
+  .nav { gap: 10px; }
+  .logo { font-size: 18px; }
+  .sub-btn { padding: 8px 14px; font-size: 14px; white-space: nowrap; }
+}
+@media (max-width: 640px) {
+  .app-btn:not([hidden]) ~ .sub-btn { display: none; }
+}
+html { overflow-x: clip; }
+main { overflow-x: clip; }
+@media (max-width: 640px) { .nav nav + .app-btn { margin-left: auto; } }
