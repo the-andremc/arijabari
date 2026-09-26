@@ -1,6 +1,6 @@
 // Offline support. Pages/scripts: network first (so new episodes show up straight away),
 // falling back to cache when offline. Photos/icons: cache first. Videos: never cached.
-const CACHE = "ari-v4";
+const CACHE = "ari-v5";
 const SHELL = ["/", "/create", "/create.css", "/create.js", "/jabari.js", "/styles.css", "/app.js", "/data.js", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -19,6 +19,7 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== location.origin) return;
+  if (url.pathname.startsWith("/api/")) return; // never cache account data
   if (url.pathname.startsWith("/media/videos/") && url.pathname.endsWith(".mp4")) return;
 
   const cacheFirst = url.pathname.startsWith("/media/") || url.pathname.startsWith("/icons/");

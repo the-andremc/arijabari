@@ -7,3 +7,4 @@ node_modules/
 # Photos/videos of Ari stay off GitHub (repo is public)
 public/media/
 public/icons/
+.dev.vars

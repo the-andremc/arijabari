@@ -1,3 +1,16 @@
 name = "arijabari"
 compatibility_date = "2026-09-26"
 pages_build_output_dir = "public"
+
+[vars]
+EMAIL_FROM = "Jabari <hello@arijabari.com>"
+# Sign-in emails go through the Cloudflare Email Service REST API.
+# Also needs the secret CF_EMAIL_TOKEN (API token with Email Sending permission).
+CF_ACCOUNT_ID = "eccd218b96e9db00392655bc816ceeb9"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "arijabari"
+database_id = "54717fee-0665-47c3-94ea-5a7c8038987f"
+migrations_dir = "migrations"
+
