@@ -3,19 +3,165 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ari Jabari</title>
-  <meta name="description" content="Ari Jabari">
-  <style>
-    :root { color-scheme: light dark; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-           font-family: system-ui, -apple-system, sans-serif; }
-    h1 { font-weight: 600; letter-spacing: -0.02em; }
-  </style>
+  <title>Ari Jabari · Daily Stories & Total Gibberish</title>
+  <meta name="description" content="Ari Jabari tells a new story every day. Some of it makes sense. Most of it doesn't.">
+  <meta property="og:title" content="Ari Jabari">
+  <meta property="og:description" content="Daily stories. Total gibberish. 100% Ari.">
+  <meta property="og:image" content="/media/faces/face-13.jpg">
+  <meta name="theme-color" content="#0d0b1a">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤪</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <main>
-    <h1>Ari Jabari</h1>
-    <p>Coming soon.</p>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="#top" class="logo">ARI<span>JABARI</span></a>
+    <nav>
+      <a href="#latest">Latest</a>
+      <a href="#episodes">Episodes</a>
+      <a href="#faces">Faces</a>
+      <a href="#gibberish">Gibberish</a>
+    </nav>
+    <button class="sub-btn" data-subscribe>Subscribe</button>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="live-pill"><span class="dot"></span> NEW STORY EVERY DAY</p>
+        <h1 class="mega">
+          <span class="wobble" data-text="ARI">ARI</span>
+          <span class="wobble outline" data-text="JABARI">JABARI</span>
+        </h1>
+        <p class="tagline">Daily stories. Total gibberish. <strong>100% Ari.</strong></p>
+        <div class="hero-ctas">
+          <a href="#latest" class="btn btn-hot">▶ Watch the latest</a>
+          <button class="btn btn-ghost" data-subscribe>🔔 Get notified</button>
+        </div>
+        <p class="hint">psst… click his face 👉</p>
+      </div>
+
+      <div class="hero-face-wrap">
+        <button class="hero-face" id="heroFace" aria-label="Click to change Ari's face">
+          <img src="/media/faces/face-13.jpg" alt="Ari pulling a face" id="heroFaceImg">
+        </button>
+        <div class="bubble" id="heroBubble">bro what</div>
+        <div class="face-counter"><span id="faceCount">0</span> faces pulled</div>
+        <span class="sticker s1">NOT A BOT</span>
+        <span class="sticker s2">CERTIFIED SILLY</span>
+        <span class="sticker s3">MAIN CHARACTER</span>
+      </div>
+    </section>
+
+    <!-- TICKER -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="ticker"></div>
+    </div>
+
+    <!-- STATS -->
+    <section class="stats">
+      <div class="stat"><b data-count="3">0</b><span>stories told</span></div>
+      <div class="stat"><b data-count="40">0</b><span>faces pulled</span></div>
+      <div class="stat"><b data-count="9001">0</b><span>gibberish level</span></div>
+      <div class="stat"><b data-count="0">0</b><span>times he sat still</span></div>
+    </section>
+
+    <!-- LATEST -->
+    <section id="latest" class="block">
+      <h2 class="sec-title"><span>LATEST</span> DROP</h2>
+      <div class="latest">
+        <div class="player-frame" id="playerFrame">
+          <video id="player" controls playsinline preload="metadata"></video>
+        </div>
+        <div class="latest-info">
+          <p class="ep-tag" id="latestTag"></p>
+          <h3 id="latestTitle"></h3>
+          <p id="latestDesc"></p>
+          <div class="react-bar" id="reactBar">
+            <button data-react="🔥">🔥 <span>0</span></button>
+            <button data-react="💀">💀 <span>0</span></button>
+            <button data-react="😂">😂 <span>0</span></button>
+            <button data-react="🤯">🤯 <span>0</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EPISODES -->
+    <section id="episodes" class="block">
+      <h2 class="sec-title"><span>ALL</span> EPISODES</h2>
+      <div class="ep-grid" id="epGrid"></div>
+    </section>
+
+    <!-- MOOD ROULETTE -->
+    <section class="block roulette">
+      <h2 class="sec-title"><span>MOOD</span> ROULETTE</h2>
+      <p class="sec-sub">Spin to find out which Ari you're getting today.</p>
+      <div class="roulette-box">
+        <div class="slot"><img id="slotImg" src="/media/faces/face-01.jpg" alt="A random Ari face"></div>
+        <div class="roulette-side">
+          <p class="mood-label">TODAY'S MOOD</p>
+          <p class="mood" id="moodText">Press spin. If you dare.</p>
+          <button class="btn btn-lime" id="spinBtn">🎰 SPIN</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FACE WALL -->
+    <section id="faces" class="block">
+      <h2 class="sec-title"><span>THE</span> FACE WALL</h2>
+      <p class="sec-sub">40 faces. Zero regrets. Tap one.</p>
+      <div class="face-wall" id="faceWall"></div>
+    </section>
+
+    <!-- GIBBERISH -->
+    <section id="gibberish" class="block gib">
+      <h2 class="sec-title"><span>GIBBERISH</span> GENERATOR</h2>
+      <p class="sec-sub">Genuine Ari-certified nonsense. Fresh every click.</p>
+      <div class="gib-card">
+        <p class="gib-text" id="gibText">"So basically right, the toaster looked at me funny."</p>
+        <div class="gib-actions">
+          <button class="btn btn-hot" id="gibBtn">🌀 Generate</button>
+          <button class="btn btn-ghost" id="gibCopy">📋 Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- YOUTUBE CTA -->
+    <section class="block yt">
+      <div class="yt-card">
+        <div class="yt-logo">▶</div>
+        <h2>YOUTUBE CHANNEL<br><span>LOADING…</span></h2>
+        <div class="loadbar"><i></i></div>
+        <p>Ari's channel is coming soon. Hit the bell so you're first in line.</p>
+        <button class="btn btn-lime bell" data-subscribe>🔔 Ring the bell</button>
+      </div>
+    </section>
   </main>
+
+  <footer class="foot">
+    <p class="foot-logo">ARI<span>JABARI</span></p>
+    <p>Run by Ari's family. Be kind, be funny, don't be weird.</p>
+    <p class="tiny">© <span id="yr"></span> arijabari.com</p>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" hidden>
+    <button class="lb-close" aria-label="Close">✕</button>
+    <figure>
+      <img id="lbImg" alt="">
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="/data.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>
