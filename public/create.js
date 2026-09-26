@@ -3,15 +3,9 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const MAX_IMAGES = 24;
   const MAX_SIDE = 800;
-
-  const THEMES = {
-    neon:  { label: "Neon",  jbg: "#0d0b1a", a: "#ff2e88", b: "#22e4ff", c: "#c6ff00", d: "#ffe14d" },
-    ocean: { label: "Ocean", jbg: "#041a2f", a: "#00a6ff", b: "#7cffcb", c: "#ffd23f", d: "#ffffff" },
-    lava:  { label: "Lava",  jbg: "#1a0505", a: "#ff4d00", b: "#ffb800", c: "#ff9e7a", d: "#fff1c1" },
-    toxic: { label: "Toxic", jbg: "#06130a", a: "#9d2bff", b: "#39ff14", c: "#39ff14", d: "#fff200" },
-    candy: { label: "Candy", jbg: "#2b0a3d", a: "#ff5ccd", b: "#9be7ff", c: "#b8ff9f", d: "#fff07a" },
-    mono:  { label: "Mono",  jbg: "#111111", a: "#ff3b3b", b: "#ffffff", c: "#ffffff", d: "#ffffff" },
-  };
+  const { THEMES, DB, exampleState } = window.JB;
+  const params = new URLSearchParams(location.search);
+  const exampleKey = params.get("example");
 
   const DEFAULTS = {
     name: "", line2: "JABARI", tagline: "",
@@ -22,40 +16,15 @@
             "Five more minutes (it was two hours)", "Absolutely zero thoughts. Just vibes."].join("\n"),
   };
 
-  /* ---------- Tiny IndexedDB store (photos are too big for localStorage) ---------- */
-  const DB = {
-    open() {
-      return (this._db ||= new Promise((res, rej) => {
-        const r = indexedDB.open("jabari", 1);
-        r.onupgradeneeded = () => r.result.createObjectStore("kv");
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => rej(r.error);
-      }));
-    },
-    async get(k) {
-      const db = await this.open();
-      return new Promise((res, rej) => {
-        const r = db.transaction("kv").objectStore("kv").get(k);
-        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-      });
-    },
-    async set(k, v) {
-      const db = await this.open();
-      return new Promise((res, rej) => {
-        const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k);
-        t.oncomplete = () => res(); t.onerror = () => rej(t.error);
-      });
-    },
-  };
-
   /* ---------- State ---------- */
   let state = { ...DEFAULTS, images: [], heroId: null }; // images: [{id, blob}]
   const urls = new Map(); // id -> object URL
-  const urlFor = (img) => { if (!urls.has(img.id)) urls.set(img.id, URL.createObjectURL(img.blob)); return urls.get(img.id); };
+  const urlFor = (img) => { if (img.url) return img.url; if (!urls.has(img.id)) urls.set(img.id, URL.createObjectURL(img.blob)); return urls.get(img.id); };
   const lines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
 
   let saveT;
   function save() {
+    if (exampleKey) return; // examples are read-only
     clearTimeout(saveT);
     saveT = setTimeout(async () => {
       try { await DB.set("me", state); $("#savedNote").textContent = "✓ Saved on this device"; }
@@ -233,7 +202,10 @@
   /* ---------- Actions ---------- */
   const preview = $("#preview");
   $("#fullBtn").onclick = () => { preview.classList.add("full"); document.body.classList.add("pv-full"); };
-  const exitFull = () => { preview.classList.remove("full"); document.body.classList.remove("pv-full"); };
+  const exitFull = () => {
+    if (exampleKey || params.has("view")) { location.href = "/#gallery"; return; }
+    preview.classList.remove("full"); document.body.classList.remove("pv-full");
+  };
   $("#exitFull").onclick = exitFull;
   addEventListener("keydown", (e) => { if (e.key === "Escape") exitFull(); });
   $("#shareBtn").onclick = () => toast("🔗 Sharing unlocks when sign-up arrives. Coming soon!");
@@ -247,10 +219,19 @@
 
   /* ---------- Boot ---------- */
   (async () => {
-    try {
-      const saved = await DB.get("me");
-      if (saved) state = { ...DEFAULTS, ...saved, images: saved.images || [] };
-    } catch {}
+    const ex = exampleKey && exampleState(exampleKey);
+    if (ex) {
+      state = { ...DEFAULTS, ...ex };
+      document.body.classList.add("example-mode");
+      document.title = `${ex.name} ${ex.line2} · Example Jabari`;
+    } else {
+      try {
+        const saved = await DB.get("me");
+        if (saved) state = { ...DEFAULTS, ...saved, images: saved.images || [] };
+      } catch {}
+    }
     fillForm(); renderThumbs(); render();
+    // ?example=… and ?view open straight into the full-screen page
+    if (ex || params.has("view")) $("#fullBtn").click();
   })();
 })();

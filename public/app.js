@@ -200,6 +200,52 @@
 
   $("#yr").textContent = new Date().getFullYear();
 
+  /* ---------- Jabari gallery ---------- */
+  (async () => {
+    const grid = $("#gallery-grid"); if (!grid || !window.JB) return;
+    const { THEMES, DB, EXAMPLES, exampleState } = JB;
+
+    function card({ href, st, badge, faceUrl, emoji, cls = "" }) {
+      const t = THEMES[st.theme] || THEMES.neon;
+      const a = document.createElement("a");
+      a.href = href; a.className = "jcard " + cls;
+      for (const k of ["jbg", "a", "b", "c", "d"]) a.style.setProperty("--" + k, t[k]);
+      a.innerHTML = `<span class="jc-badge"></span><span class="jc-face"></span>
+        <span class="jc-title"><b class="l1"></b><b class="l2"></b></span><span class="jc-tag"></span>`;
+      a.querySelector(".jc-badge").textContent = badge;
+      const face = a.querySelector(".jc-face");
+      if (faceUrl) { const i = new Image(); i.alt = ""; i.src = faceUrl; face.append(i); } else face.textContent = emoji || "🤪";
+      a.querySelector(".l1").textContent = (st.name || "YOUR NAME").toUpperCase();
+      a.querySelector(".l2").textContent = (st.line2 || "").toUpperCase();
+      a.querySelector(".jc-tag").textContent = st.tagline || "";
+      return a;
+    }
+
+    let mine = null;
+    try { mine = await DB.get("me"); } catch {}
+    const hasMine = mine && (mine.name || (mine.images && mine.images.length));
+    if (hasMine) {
+      const hero = mine.images?.find((i) => i.id === mine.heroId) || mine.images?.[0];
+      const c = card({ href: "/create?view", st: mine, badge: "⭐ YOURS", faceUrl: hero && URL.createObjectURL(hero.blob), cls: "mine" });
+      const edit = document.createElement("span"); edit.className = "jc-edit"; edit.textContent = "✏️ Edit";
+      edit.addEventListener("click", (e) => { e.preventDefault(); location.href = "/create"; });
+      c.append(edit); grid.append(c);
+    } else {
+      const a = document.createElement("a"); a.href = "/create"; a.className = "jcard make";
+      a.innerHTML = `<span class="jc-plus">+</span><span class="jc-title"><b class="l1">MAKE</b><b class="l2">YOURS</b></span><span class="jc-tag">Takes about 60 seconds</span>`;
+      grid.append(a);
+    }
+
+    for (const key of Object.keys(EXAMPLES)) {
+      const st = exampleState(key);
+      grid.append(card({ href: `/create?example=${key}`, st, badge: "EXAMPLE", faceUrl: st.images[0].url }));
+    }
+
+    const soon = document.createElement("div"); soon.className = "jcard soon";
+    soon.innerHTML = `<span class="jc-plus">🔒</span><span class="jc-title"><b class="l1">MORE</b><b class="l2">SOON</b></span><span class="jc-tag">Your friends' Jabaris arrive with sign-up</span>`;
+    grid.append(soon);
+  })();
+
   /* ---------- Web app: offline + install ---------- */
   if ("serviceWorker" in navigator) {
     addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));

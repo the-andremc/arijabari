@@ -181,3 +181,44 @@
 body.pv-full .preview-wrap { position: static; }
 body.pv-full { overflow: hidden; }
 .studio > * { min-width: 0; }
+
+/* Example pages open read-only, straight into full screen */
+.pv-cta { display: none; text-align: center; padding: 34px 20px 0; }
+.pv-cta p { margin: 0 0 14px; color: rgba(255,255,255,.7); }
+body.example-mode .pv-cta { display: block; }
+body.example-mode .create { visibility: hidden; }
+body.example-mode .preview.full { visibility: visible; }
+
+/* Jabari gallery (main page) */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.jcard {
+  --a: #ff2e88; --b: #22e4ff; --c: #c6ff00; --d: #ffe14d; --jbg: #0d0b1a;
+  position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 26px 16px 20px; border-radius: var(--radius); text-decoration: none; color: #fff; min-height: 300px;
+  background: radial-gradient(260px 140px at 80% 0%, color-mix(in srgb, var(--a) 40%, transparent), transparent 70%), var(--jbg);
+  border: 2px solid rgba(255,255,255,.1); transition: transform .15s, border-color .15s;
+}
+a.jcard:hover { transform: translateY(-6px) rotate(-1deg); border-color: var(--a); }
+.jc-badge { position: absolute; top: 12px; left: 12px; background: var(--c); color: #111; font-weight: 800; font-size: 12px; padding: 3px 9px; border-radius: 8px; letter-spacing: .05em; }
+.jcard.mine { border-color: var(--d); box-shadow: 0 0 0 3px var(--d); }
+.jcard.mine .jc-badge { background: var(--d); }
+.jc-face {
+  width: 120px; height: 120px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 60px;
+  margin: 10px 0 16px; background: #222; box-shadow: 0 0 0 5px var(--a), 0 0 0 9px var(--jbg), 0 0 0 12px var(--b);
+}
+.jc-face img { width: 100%; height: 100%; object-fit: cover; }
+.jc-title { font-family: var(--display); line-height: .95; font-size: 30px; word-break: break-word; }
+.jc-title b { display: block; font-weight: 400; }
+.jc-title .l1 { color: var(--d); text-shadow: 3px 3px 0 var(--a); }
+.jc-title .l2 { color: transparent; -webkit-text-stroke: 1.5px var(--b); }
+.jc-tag { color: rgba(255,255,255,.7); font-size: 15px; margin-top: 10px; }
+.jc-edit { margin-top: auto; padding-top: 14px; font-weight: 800; color: var(--d); }
+.jcard.make, .jcard.soon { justify-content: center; background: var(--bg-2); border: 3px dashed rgba(255,255,255,.2); }
+.jcard.make { border-color: var(--lime); }
+.jcard.make .jc-title .l1 { color: var(--lime); text-shadow: 3px 3px 0 var(--hot); }
+.jcard.make .jc-title .l2 { -webkit-text-stroke-color: var(--cyan); }
+.jc-plus { width: 90px; height: 90px; border-radius: 50%; display: grid; place-items: center; font-size: 50px; margin-bottom: 16px; background: rgba(255,255,255,.06); }
+.jcard.make .jc-plus { background: var(--lime); color: #111; font-weight: 800; }
+.jcard.soon { opacity: .7; }
+.jcard.soon .jc-title .l1 { color: var(--muted); text-shadow: none; }
+.jcard.soon .jc-title .l2 { -webkit-text-stroke-color: var(--muted); }
