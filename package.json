@@ -2,7 +2,7 @@
   "name": "arijabari",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev",
+    "dev": "wrangler pages dev --ip 127.0.0.1 --port 8788",
     "deploy": "wrangler pages deploy"
   },
   "devDependencies": {
