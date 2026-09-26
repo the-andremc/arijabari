@@ -199,4 +199,33 @@
   }));
 
   $("#yr").textContent = new Date().getFullYear();
+
+  /* ---------- Web app: offline + install ---------- */
+  if ("serviceWorker" in navigator) {
+    addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  }
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const installBtn = $("#installBtn"), sheet = $("#iosSheet");
+  let deferred = null;
+
+  if (!standalone) {
+    if (isIOS) installBtn.hidden = false;
+    addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferred = e; installBtn.hidden = false; });
+  }
+  installBtn.addEventListener("click", async () => {
+    if (deferred) {
+      deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      deferred = null;
+      if (outcome === "accepted") installBtn.hidden = true;
+    } else if (isIOS) {
+      sheet.hidden = false;
+    }
+  });
+  sheet.addEventListener("click", (e) => { if (e.target === sheet || e.target.closest("#iosClose")) sheet.hidden = true; });
+  addEventListener("appinstalled", () => {
+    installBtn.hidden = true; confetti(); toast("📲 Ari is on your home screen!");
+  });
 })();

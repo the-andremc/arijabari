@@ -2,14 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Ari Jabari · Daily Stories & Total Gibberish</title>
   <meta name="description" content="Ari Jabari tells a new story every day. Some of it makes sense. Most of it doesn't.">
   <meta property="og:title" content="Ari Jabari">
   <meta property="og:description" content="Daily stories. Total gibberish. 100% Ari.">
   <meta property="og:image" content="/media/faces/face-13.jpg">
   <meta name="theme-color" content="#0d0b1a">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤪</text></svg>">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ari">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
@@ -26,6 +32,7 @@
       <a href="#faces">Faces</a>
       <a href="#gibberish">Gibberish</a>
     </nav>
+    <button class="app-btn" id="installBtn" hidden>📲 Get the app</button>
     <button class="sub-btn" data-subscribe>Subscribe</button>
   </header>
 
@@ -160,6 +167,21 @@
   </div>
 
   <div class="toast" id="toast" role="status"></div>
+
+  <!-- iOS INSTALL SHEET -->
+  <div class="sheet" id="iosSheet" hidden>
+    <div class="sheet-card">
+      <button class="lb-close" id="iosClose" aria-label="Close">✕</button>
+      <img src="/icons/apple-touch-icon.png" alt="" class="sheet-icon">
+      <h3>Put Ari on your home screen</h3>
+      <ol>
+        <li>Tap the <b>Share</b> button <span class="ios-share" aria-hidden="true">⬆︎</span> at the bottom of Safari</li>
+        <li>Scroll down and tap <b>Add to Home Screen</b></li>
+        <li>Tap <b>Add</b>. Done. Ari lives on your phone now.</li>
+      </ol>
+      <p class="tiny">Using Chrome on iPhone? Open arijabari.com in Safari first.</p>
+    </div>
+  </div>
 
   <script src="/data.js"></script>
   <script src="/app.js"></script>
