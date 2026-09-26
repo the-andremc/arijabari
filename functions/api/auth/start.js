@@ -1,5 +1,5 @@
 // POST /api/auth/start  { email }  → emails a 6-digit code
-import { readJson, normEmail, issueCode, sendLoginEmail, json, fail } from "../../../lib/auth.js";
+import { readJson, normEmail, issueCode, refundCode, sendLoginEmail, json, fail } from "../../../lib/auth.js";
 
 export async function onRequestPost({ request, env }) {
   const body = await readJson(request);
@@ -13,7 +13,8 @@ export async function onRequestPost({ request, env }) {
     await sendLoginEmail(env, email, issued.code);
   } catch (err) {
     console.error(err);
-    return fail(502, "Couldn't send the email. Try again in a minute.");
+    await refundCode(env, email); // a failed send shouldn't use up the hourly limit
+    return fail(503, "Couldn't send the email. Try again in a minute.");
   }
   return json({ ok: true });
 }
