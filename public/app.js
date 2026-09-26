@@ -94,6 +94,8 @@
   /* ---------- Episodes ---------- */
   const player = $("#player"), frame = $("#playerFrame");
   let currentDay;
+  let reactions = { counts: {}, mine: null }, reactSignedIn = false, reactBusy = false;
+  const clipId = (day) => `ari-day-${day}`;
   function loadEpisode(ep, autoplay) {
     player.src = ep.video; player.poster = ep.poster;
     frame.classList.toggle("wide", !ep.vertical);
@@ -119,20 +121,39 @@
   });
   loadEpisode(EPISODES[0], false);
 
-  /* ---------- Reactions (saved per viewer) ---------- */
-  function loadReactions(day) {
-    currentDay = day;
-    const r = store.get(`react-${day}`, {});
-    document.querySelectorAll("[data-react]").forEach((b) => { b.querySelector("span").textContent = r[b.dataset.react] || 0; });
+  /* ---------- Reactions: one per account per clip (stored on the server) ---------- */
+  function paintReactions() {
+    document.querySelectorAll("[data-react]").forEach((b) => {
+      const em = b.dataset.react;
+      b.querySelector("span").textContent = JB.fmt(reactions.counts[em] || 0);
+      b.classList.toggle("mine", reactions.mine === em);
+      b.setAttribute("aria-pressed", reactions.mine === em ? "true" : "false");
+    });
   }
-  $("#reactBar").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-react]"); if (!b) return;
-    const key = `react-${currentDay}`, r = store.get(key, {}), em = b.dataset.react;
-    r[em] = (r[em] || 0) + 1; store.set(key, r); b.querySelector("span").textContent = r[em];
-    const f = document.createElement("span"); f.className = "float-emoji"; f.textContent = em;
-    f.style.left = e.clientX - 16 + "px"; f.style.top = e.clientY - 20 + "px";
-    document.body.append(f); setTimeout(() => f.remove(), 1100);
-    boop(700, .08, "triangle");
+  async function loadReactions(day) {
+    currentDay = day;
+    reactions = { counts: {}, mine: null }; paintReactions();
+    const r = await JB.api(`/api/reactions?clips=${clipId(day)}`);
+    if (!r.ok || currentDay !== day) return;
+    reactSignedIn = r.signedIn;
+    reactions = r.clips[clipId(day)] || reactions; paintReactions();
+  }
+  $("#reactBar").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-react]"); if (!b || reactBusy) return;
+    if (!reactSignedIn) { toast("Sign up to react ✨ (one reaction per clip)"); return; }
+    const em = b.dataset.react, day = currentDay;
+    reactBusy = true;
+    const r = await JB.api("/api/reactions", { clip: clipId(day), emoji: em });
+    reactBusy = false;
+    if (!r.ok) return toast(r.error);
+    if (currentDay !== day) return;
+    reactions = { counts: r.counts, mine: r.mine }; paintReactions();
+    if (r.mine === em) {
+      const f = document.createElement("span"); f.className = "float-emoji"; f.textContent = em;
+      f.style.left = e.clientX - 16 + "px"; f.style.top = e.clientY - 20 + "px";
+      document.body.append(f); setTimeout(() => f.remove(), 1100);
+      boop(700, .08, "triangle");
+    } else boop(300, .08, "sine");
   });
 
   /* ---------- Mood roulette ---------- */
@@ -200,50 +221,50 @@
 
   $("#yr").textContent = new Date().getFullYear();
 
-  /* ---------- Jabari gallery ---------- */
+  /* ---------- Jabari gallery: everyone's public Jabaris ---------- */
   (async () => {
     const grid = $("#gallery-grid"); if (!grid || !window.JB) return;
-    const { THEMES, DB, EXAMPLES, exampleState } = JB;
+    const { THEMES, api, fmt } = JB;
 
-    function card({ href, st, badge, faceUrl, emoji, cls = "" }) {
-      const t = THEMES[st.theme] || THEMES.neon;
+    function card(p, mine) {
+      const t = THEMES[p.theme] || THEMES.neon;
       const a = document.createElement("a");
-      a.href = href; a.className = "jcard " + cls;
+      a.href = `/j/${encodeURIComponent(p.handle)}`; a.className = "jcard" + (mine ? " mine" : "");
       for (const k of ["jbg", "a", "b", "c", "d"]) a.style.setProperty("--" + k, t[k]);
       a.innerHTML = `<span class="jc-badge"></span><span class="jc-face"></span>
-        <span class="jc-title"><b class="l1"></b><b class="l2"></b></span><span class="jc-tag"></span>`;
-      a.querySelector(".jc-badge").textContent = badge;
+        <span class="jc-title"><b class="l1"></b><b class="l2"></b></span><span class="jc-tag"></span>
+        <span class="jc-meta"><span class="jc-handle"></span><span class="jc-fol"><b></b> followers</span></span>`;
+      const badge = a.querySelector(".jc-badge");
+      if (mine) badge.textContent = "⭐ YOURS"; else badge.remove();
       const face = a.querySelector(".jc-face");
-      if (faceUrl) { const i = new Image(); i.alt = ""; i.src = faceUrl; face.append(i); } else face.textContent = emoji || "🤪";
-      a.querySelector(".l1").textContent = (st.name || "YOUR NAME").toUpperCase();
-      a.querySelector(".l2").textContent = (st.line2 || "").toUpperCase();
-      a.querySelector(".jc-tag").textContent = st.tagline || "";
+      if (p.heroUrl) { const i = new Image(); i.alt = ""; i.loading = "lazy"; i.src = p.heroUrl; face.append(i); } else face.textContent = "🤪";
+      a.querySelector(".l1").textContent = (p.name || p.handle).toUpperCase();
+      a.querySelector(".l2").textContent = (p.line2 || "").toUpperCase();
+      a.querySelector(".jc-tag").textContent = p.tagline || "";
+      a.querySelector(".jc-handle").textContent = "@" + p.handle;
+      a.querySelector(".jc-fol b").textContent = fmt(p.followers);
+      if (p.followers === 1) a.querySelector(".jc-fol").lastChild.textContent = " follower";
       return a;
     }
 
-    let mine = null;
-    try { mine = await DB.get("me"); } catch {}
-    const hasMine = mine && (mine.name || (mine.images && mine.images.length));
-    if (hasMine) {
-      const hero = mine.images?.find((i) => i.id === mine.heroId) || mine.images?.[0];
-      const c = card({ href: "/create?view", st: mine, badge: "⭐ YOURS", faceUrl: hero && URL.createObjectURL(hero.blob), cls: "mine" });
-      const edit = document.createElement("span"); edit.className = "jc-edit"; edit.textContent = "✏️ Edit";
-      edit.addEventListener("click", (e) => { e.preventDefault(); location.href = "/create"; });
-      c.append(edit); grid.append(c);
-    } else {
+    const [list, me] = await Promise.all([api("/api/pages"), api("/api/me")]);
+    const pages = list.ok ? list.pages : [];
+    const myHandle = me.signedIn ? me.handle : null;
+    const minePublic = pages.some((p) => p.handle === myHandle);
+
+    if (!minePublic) {
       const a = document.createElement("a"); a.href = "/create"; a.className = "jcard make";
-      a.innerHTML = `<span class="jc-plus">+</span><span class="jc-title"><b class="l1">MAKE</b><b class="l2">YOURS</b></span><span class="jc-tag">Takes about 60 seconds</span>`;
+      a.innerHTML = `<span class="jc-plus">+</span><span class="jc-title"><b class="l1">MAKE</b><b class="l2">YOURS</b></span><span class="jc-tag">Build it, publish it, get followers</span>`;
       grid.append(a);
     }
+    pages.sort((x, y) => (y.handle === myHandle) - (x.handle === myHandle));
+    for (const p of pages) grid.append(card(p, p.handle === myHandle));
 
-    for (const key of Object.keys(EXAMPLES)) {
-      const st = exampleState(key);
-      grid.append(card({ href: `/create?example=${key}`, st, badge: "EXAMPLE", faceUrl: st.images[0].url }));
+    if (!pages.length) {
+      const empty = document.createElement("p"); empty.className = "gallery-empty";
+      empty.textContent = list.ok ? "No public Jabaris yet. Be the first! 🏆" : "Couldn't load the gallery. Check your connection.";
+      grid.append(empty);
     }
-
-    const soon = document.createElement("div"); soon.className = "jcard soon";
-    soon.innerHTML = `<span class="jc-plus">🔒</span><span class="jc-title"><b class="l1">MORE</b><b class="l2">SOON</b></span><span class="jc-tag">Your friends' Jabaris arrive with sign-up</span>`;
-    grid.append(soon);
   })();
 
   /* ---------- Web app: offline + install ---------- */

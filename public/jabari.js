@@ -1,4 +1,5 @@
-// Shared bits for Jabari pages: themes, on-device storage, example pages.
+// Shared bits for Jabari pages: themes, on-device drafts, sounds, and the page renderer
+// used by the creator preview (/create) and published pages (/j/<name>).
 window.JB = (() => {
   const THEMES = {
     neon:  { label: "Neon",  jbg: "#0d0b1a", a: "#ff2e88", b: "#22e4ff", c: "#c6ff00", d: "#ffe14d" },
@@ -9,7 +10,7 @@ window.JB = (() => {
     mono:  { label: "Mono",  jbg: "#111111", a: "#ff3b3b", b: "#ffffff", c: "#ffffff", d: "#ffffff" },
   };
 
-  // Photos are too big for localStorage, so pages live in IndexedDB on this device.
+  // Drafts (with photos) are too big for localStorage, so they live in IndexedDB on this device.
   const DB = {
     open() {
       return (this._db ||= new Promise((res, rej) => {
@@ -35,43 +36,162 @@ window.JB = (() => {
     },
   };
 
-  // Emoji "faces" for the example pages (no real people in examples).
-  const emojiFace = (emoji, bg) => "data:image/svg+xml," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><rect width="300" height="400" fill="${bg}"/>` +
-    `<text x="150" y="215" font-size="190" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`
-  );
+  let ctx;
+  function boop(freq = 520, dur = 0.12, type = "square") {
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(freq * 1.8, ctx.currentTime + dur);
+      g.gain.setValueAtTime(0.08, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+      o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur);
+    } catch {}
+  }
+  const pop = (el) => { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); };
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const lines = (s) => String(s || "").split("\n").map((x) => x.trim()).filter(Boolean);
 
-  const EXAMPLES = {
-    kevin: {
-      name: "KEVIN", line2: "THE FISH", tagline: "Three second memory. Unlimited opinions.", theme: "ocean",
-      sticker0: "FISH FACTS", sticker1: "WET", sticker2: "BOWL LIFE",
-      faces: ["🐟", "🐠", "🐡", "🫧", "🦈", "🐙"],
-      bubbles: "blub\nwait who are you\nblub blub (angrily)\nis this the same castle\nnew bowl who dis",
-      moods: "Forgot what I was doing. Again.\nWhen someone taps the glass\nFood flakes incoming\nPretending to be a shark\nSwimming in circles (professionally)",
-    },
-    nugget: {
-      name: "SIR", line2: "NUGGET", tagline: "Fried. Golden. Dangerously confident.", theme: "lava",
-      sticker0: "CRISPY", sticker1: "DIP ME", sticker2: "LEGEND",
-      faces: ["🍗", "🍟", "😎", "🔥", "🥫", "👑"],
-      bubbles: "dip responsibly\nI'm not chicken, YOU'RE chicken\nsauce me\nten piece energy\nhot and ready",
-      moods: "When they pick the last nugget\nSauce shortage. Panic.\nFreshly fried and feeling it\nCrispy on the outside, soft on the inside\nKing of the kids' menu",
-    },
-    robo: {
-      name: "ROBO", line2: "JABARI", tagline: "Beep boop. Mostly boop.", theme: "toxic",
-      sticker0: "100% METAL", sticker1: "NEEDS UPDATE", sticker2: "BATTERY LOW",
-      faces: ["🤖", "👾", "🛸", "⚡", "🔋", "🧠"],
-      bubbles: "beep\nboop\ncomputing…\nerror 404: chill not found\ndoes not compute",
-      moods: "Updating… 1 of 9,999\nBattery at 2%, vibes at 100%\nWhen the wifi password is wrong\nDancing robot mode: ON\nRebooting brain.exe",
-    },
-  };
-
-  // Turn an example into the same shape as a saved page.
-  function exampleState(key) {
-    const ex = EXAMPLES[key]; if (!ex) return null;
-    const bg = (THEMES[ex.theme] || THEMES.neon).a;
-    const images = ex.faces.map((e, i) => ({ id: `${key}-${i}`, url: emojiFace(e, bg) }));
-    return { ...ex, images, heroId: images[0].id, example: key };
+  function toast(msg) {
+    let t = document.getElementById("toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2800);
   }
 
-  return { THEMES, DB, EXAMPLES, exampleState };
+  const SKELETON = `
+    <div class="jb-hero">
+      <h2 class="jb-title"><span class="l1"></span><span class="l2"></span></h2>
+      <p class="jb-tag"></p>
+      <div class="jb-social"></div>
+      <div class="jb-face-wrap">
+        <button class="jb-face" type="button" aria-label="Click to change face"></button>
+        <div class="jb-bubble"></div>
+        <span class="jb-sticker k0"></span><span class="jb-sticker k1"></span><span class="jb-sticker k2"></span>
+        <div class="jb-count"><span>0</span> faces pulled</div>
+      </div>
+    </div>
+    <div class="jb-ticker"><div class="jb-ticker-track"></div></div>
+    <section class="jb-sec">
+      <h3>MOOD ROULETTE</h3>
+      <div class="jb-roulette">
+        <div class="jb-slot"></div>
+        <p class="jb-mood">Press spin. If you dare.</p>
+        <button class="btn btn-lime jb-spin" type="button">🎰 SPIN</button>
+      </div>
+    </section>
+    <section class="jb-sec">
+      <h3>THE FACE WALL</h3>
+      <div class="jb-wall"></div>
+    </section>
+    <section class="jb-sec">
+      <h3>GIBBERISH GENERATOR</h3>
+      <div class="jb-gib">
+        <p>"So basically right, the toaster looked at me funny."</p>
+        <button class="btn btn-hot" type="button">🌀 Generate</button>
+      </div>
+    </section>
+    <div class="jb-extra"></div>
+    <p class="jb-foot">Made with <b>Create Your Own Jabari</b> · <a href="/">arijabari.com</a></p>`;
+
+  // Draws an interactive Jabari page into `root`. Call update(state) whenever the data changes.
+  // state: { name, line2, tagline, theme, sticker0-2, bubbles, moods, images: [{id, url|blob}], heroId }
+  function page(root, { urlFor = (img) => img.url } = {}) {
+    root.classList.add("jb");
+    root.innerHTML = SKELETON;
+    const q = (s) => root.querySelector(s);
+    let st = { images: [] }, count = 0, spinning = false;
+
+    const heroImg = () => st.images.find((i) => i.id === st.heroId) || st.images[0];
+    const faceNode = (img) => {
+      if (!img) return document.createTextNode("🤪");
+      const el = new Image(); el.alt = ""; el.src = urlFor(img); return el;
+    };
+
+    q(".jb-face").addEventListener("click", () => {
+      const face = q(".jb-face"), bub = q(".jb-bubble");
+      if (st.images.length > 1) {
+        const cur = face.querySelector("img")?.src; let img;
+        do { img = pick(st.images); } while (new URL(urlFor(img), location.href).href === cur);
+        face.replaceChildren(faceNode(img));
+      }
+      const b = lines(st.bubbles); if (b.length) bub.textContent = pick(b);
+      pop(face); pop(bub); boop(300 + Math.random() * 500);
+      q(".jb-count span").textContent = ++count;
+    });
+
+    q(".jb-spin").addEventListener("click", () => {
+      if (spinning) return;
+      const moods = lines(st.moods); if (!moods.length) return toast("No mood captions yet!");
+      spinning = true;
+      const slot = q(".jb-slot"), mood = q(".jb-mood");
+      slot.classList.add("spinning");
+      let i = 0, delay = 50;
+      const roll = () => {
+        if (st.images.length) slot.replaceChildren(faceNode(pick(st.images)));
+        mood.textContent = pick(moods); boop(200 + i * 25, .05); i++; delay *= 1.12;
+        if (delay < 380) setTimeout(roll, delay);
+        else { slot.classList.remove("spinning"); spinning = false; boop(880, .25, "sawtooth"); }
+      };
+      roll();
+    });
+
+    q(".jb-gib button").addEventListener("click", () => {
+      const p = q(".jb-gib p");
+      p.textContent = `"${pick(GIB.starts)} ${pick(GIB.subjects)} ${pick(GIB.twists)}"`;
+      pop(p); boop(260 + Math.random() * 300, .1, "sine");
+    });
+
+    function update(state) {
+      st = state;
+      const t = THEMES[st.theme] || THEMES.neon;
+      for (const k of ["jbg", "a", "b", "c", "d"]) root.style.setProperty(`--${k}`, t[k]);
+      q(".l1").textContent = (st.name || "YOUR NAME").toUpperCase();
+      q(".l2").textContent = (st.line2 || "").toUpperCase();
+      q(".jb-tag").textContent = st.tagline || "Daily chaos. Zero regrets.";
+      root.querySelectorAll(".jb-sticker").forEach((el, i) => { el.textContent = st[`sticker${i}`] || ""; });
+      q(".jb-face").replaceChildren(faceNode(heroImg()));
+      q(".jb-bubble").textContent = lines(st.bubbles)[0] || "hi 👋";
+      q(".jb-slot").replaceChildren(faceNode(heroImg()));
+
+      const items = [...lines(st.bubbles), ...lines(st.moods)].slice(0, 12);
+      const track = q(".jb-ticker-track"); track.textContent = "";
+      for (let rep = 0; rep < 2; rep++) for (const s of (items.length ? items : ["Nonsense loading…"])) {
+        const sp = document.createElement("span"); sp.textContent = "✦ " + s; track.append(sp);
+      }
+
+      const wall = q(".jb-wall"); wall.textContent = "";
+      if (!st.images.length) {
+        const p = document.createElement("p"); p.className = "jb-empty"; p.textContent = "No faces yet 📸"; wall.append(p);
+      }
+      for (const img of st.images) {
+        const b = document.createElement("button"); b.type = "button";
+        b.style.setProperty("--r", (Math.random() * 8 - 4).toFixed(1) + "deg");
+        b.append(faceNode(img));
+        b.onclick = () => { const f = q(".jb-face"); f.replaceChildren(faceNode(img)); pop(f); boop(420); };
+        wall.append(b);
+      }
+    }
+
+    return { update, social: q(".jb-social"), extra: q(".jb-extra") };
+  }
+
+  async function api(path, body, method) {
+    const opts = { credentials: "same-origin" };
+    if (body !== undefined) {
+      opts.method = method || "POST";
+      opts.headers = { "Content-Type": "application/json" };
+      opts.body = JSON.stringify(body);
+    } else if (method) opts.method = method;
+    try {
+      const res = await fetch(path, opts);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return { ok: false, status: res.status, error: data.error || "Something went wrong. Try again." };
+      return data;
+    } catch { return { ok: false, error: "You're offline. Try again when you're back online." }; }
+  }
+
+  const fmt = (n) => Number(n || 0).toLocaleString("en-AU"); // exact counts, never "1.2K"
+
+  return { THEMES, DB, page, boop, pop, pick, lines, toast, api, fmt };
 })();

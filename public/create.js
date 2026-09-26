@@ -1,11 +1,9 @@
 (() => {
   const $ = (s) => document.querySelector(s);
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const { THEMES, DB, toast, api } = window.JB;
   const MAX_IMAGES = 24;
   const MAX_SIDE = 800;
-  const { THEMES, DB, exampleState } = window.JB;
   const params = new URLSearchParams(location.search);
-  const exampleKey = params.get("example");
 
   const DEFAULTS = {
     name: "", line2: "JABARI", tagline: "",
@@ -14,41 +12,24 @@
     bubbles: ["bro what", "nah 💀", "ok but listen", "HELLO??", "no cap", "that's crazy"].join("\n"),
     moods: ["When the wifi drops mid-game", "Loading brain… 3%", "Main character energy: ACTIVATED",
             "Five more minutes (it was two hours)", "Absolutely zero thoughts. Just vibes."].join("\n"),
+    visibility: "public",
   };
 
   /* ---------- State ---------- */
-  let state = { ...DEFAULTS, images: [], heroId: null }; // images: [{id, blob}]
-  const urls = new Map(); // id -> object URL
-  const urlFor = (img) => { if (img.url) return img.url; if (!urls.has(img.id)) urls.set(img.id, URL.createObjectURL(img.blob)); return urls.get(img.id); };
-  const lines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
+  // images: [{ id, blob, serverId? }]; serverId is set once the photo has been uploaded.
+  let state = { ...DEFAULTS, images: [], heroId: null, publishedIds: [], dirty: false };
+  const urls = new Map();
+  const urlFor = (img) => { if (!urls.has(img.id)) urls.set(img.id, URL.createObjectURL(img.blob)); return urls.get(img.id); };
+  const isEmpty = (s) => !s.name && !s.images.length;
 
   let saveT;
-  function save() {
-    if (exampleKey) return; // examples are read-only
+  function save({ edited = true } = {}) {
+    if (edited) { state.dirty = true; showPubStatus(); }
     clearTimeout(saveT);
     saveT = setTimeout(async () => {
-      try { await DB.set("me", state); $("#savedNote").textContent = "✓ Saved on this device"; }
-      catch { $("#savedNote").textContent = "⚠️ Couldn't save (private browsing?). Your page will vanish when you close this tab."; }
+      try { await DB.set("me", state); $("#savedNote").textContent = "✓ Draft saved on this device"; }
+      catch { $("#savedNote").textContent = "⚠️ Couldn't save your draft (private browsing?)."; }
     }, 300);
-  }
-
-  /* ---------- Sound + toast ---------- */
-  let ctx;
-  function boop(freq = 520, dur = 0.12, type = "square") {
-    try {
-      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.setValueAtTime(freq, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(freq * 1.8, ctx.currentTime + dur);
-      g.gain.setValueAtTime(0.08, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-      o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur);
-    } catch {}
-  }
-  let toastT;
-  function toast(msg) {
-    const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2800);
   }
 
   /* ---------- Photos: resize in the browser (also drops location data) ---------- */
@@ -59,7 +40,7 @@
     c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
     bmp.close?.();
-    return new Promise((res) => c.toBlob(res, "image/jpeg", 0.85));
+    return new Promise((res) => c.toBlob(res, "image/jpeg", 0.82));
   }
   async function addFiles(files) {
     const list = [...files].filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
@@ -67,10 +48,8 @@
     if (room <= 0) return toast(`Max ${MAX_IMAGES} photos. Delete some first.`);
     if (list.length > room) toast(`Only adding ${room}. Max is ${MAX_IMAGES}.`);
     for (const f of list.slice(0, room)) {
-      try {
-        const blob = await shrink(f);
-        state.images.push({ id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()), blob });
-      } catch { failed++; }
+      try { state.images.push({ id: crypto.randomUUID(), blob: await shrink(f) }); }
+      catch { failed++; }
     }
     if (failed) toast(`${failed} photo${failed > 1 ? "s" : ""} couldn't be read. Try JPG or PNG.`);
     if (!state.heroId && state.images[0]) state.heroId = state.images[0].id;
@@ -116,122 +95,136 @@
   const form = $("#editor");
   const FIELDS = ["name", "line2", "tagline", "sticker0", "sticker1", "sticker2", "bubbles", "moods"];
   form.addEventListener("input", (e) => {
-    if (!FIELDS.includes(e.target.name)) return;
-    state[e.target.name] = e.target.value; render(); save();
+    if (FIELDS.includes(e.target.name)) { state[e.target.name] = e.target.value; render(); save(); }
+    if (e.target.name === "visibility") { state.visibility = e.target.value; save(); }
   });
-  const fillForm = () => FIELDS.forEach((f) => { form.elements[f].value = state[f] ?? ""; });
+  const fillForm = () => {
+    FIELDS.forEach((f) => { form.elements[f].value = state[f] ?? ""; });
+    form.querySelectorAll('[name="visibility"]').forEach((r) => { r.checked = r.value === state.visibility; });
+  };
 
   /* ---------- Preview ---------- */
-  const jb = $("#jb");
-  const heroImg = () => state.images.find((i) => i.id === state.heroId) || state.images[0];
-  const faceNode = (img) => {
-    if (!img) return document.createTextNode("🤪");
-    const el = new Image(); el.alt = ""; el.src = urlFor(img); return el;
-  };
-
+  const pv = JB.page($("#jb"), { urlFor });
   function render() {
-    const t = THEMES[state.theme] || THEMES.neon;
-    for (const k of ["jbg", "a", "b", "c", "d"]) jb.style.setProperty(`--${k}`, t[k]);
+    pv.update(state);
     themeBox.querySelectorAll(".theme").forEach((b) => b.classList.toggle("on", b.dataset.key === state.theme));
-
-    $("#pvName").textContent = (state.name || "YOUR NAME").toUpperCase();
-    $("#pvLine2").textContent = (state.line2 || "").toUpperCase();
-    $("#pvTag").textContent = state.tagline || "Daily chaos. Zero regrets.";
-    ["sticker0", "sticker1", "sticker2"].forEach((k, i) => { $(`#pvS${i}`).textContent = state[k] || ""; });
-
-    const face = $("#pvFace"); face.replaceChildren(faceNode(heroImg()));
-    $("#pvBubble").textContent = lines(state.bubbles)[0] || "hi 👋";
-    $("#pvSlot").replaceChildren(faceNode(heroImg()));
-
-    const tickerItems = [...lines(state.bubbles), ...lines(state.moods)].slice(0, 12);
-    const track = $("#pvTicker"); track.textContent = "";
-    const items = tickerItems.length ? tickerItems : ["Your nonsense goes here"];
-    for (let rep = 0; rep < 2; rep++) for (const s of items) { const sp = document.createElement("span"); sp.textContent = "✦ " + s; track.append(sp); }
-
-    const wall = $("#pvWall"); wall.textContent = "";
-    if (!state.images.length) {
-      const p = document.createElement("p"); p.className = "jb-empty"; p.textContent = "Add photos to build your face wall 📸"; wall.append(p);
-    }
-    for (const img of state.images) {
-      const b = document.createElement("button"); b.type = "button";
-      b.style.setProperty("--r", (Math.random() * 8 - 4).toFixed(1) + "deg");
-      b.append(faceNode(img));
-      b.onclick = () => { face.replaceChildren(faceNode(img)); pop(face); boop(420); };
-      wall.append(b);
-    }
   }
 
-  const pop = (el) => { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); };
-
-  let count = 0;
-  $("#pvFace").addEventListener("click", () => {
-    const face = $("#pvFace"), bub = $("#pvBubble");
-    if (state.images.length > 1) {
-      const cur = face.querySelector("img")?.src; let img;
-      do { img = pick(state.images); } while (urlFor(img) === cur);
-      face.replaceChildren(faceNode(img));
-    }
-    const b = lines(state.bubbles); if (b.length) bub.textContent = pick(b);
-    pop(face); pop(bub); boop(300 + Math.random() * 500);
-    $("#pvCount").textContent = ++count;
-  });
-
-  let spinning = false;
-  $("#pvSpin").addEventListener("click", () => {
-    if (spinning) return;
-    const moods = lines(state.moods); if (!moods.length) return toast("Add some mood captions first!");
-    spinning = true;
-    const slot = $("#pvSlot"), mood = $("#pvMood");
-    slot.classList.add("spinning");
-    let i = 0, delay = 50;
-    const roll = () => {
-      if (state.images.length) slot.replaceChildren(faceNode(pick(state.images)));
-      mood.textContent = pick(moods); boop(200 + i * 25, .05); i++; delay *= 1.12;
-      if (delay < 380) setTimeout(roll, delay);
-      else { slot.classList.remove("spinning"); spinning = false; boop(880, .25, "sawtooth"); }
-    };
-    roll();
-  });
-
-  $("#pvGibBtn").addEventListener("click", () => {
-    const p = $("#pvGib");
-    p.textContent = `"${pick(GIB.starts)} ${pick(GIB.subjects)} ${pick(GIB.twists)}"`;
-    pop(p); boop(260 + Math.random() * 300, .1, "sine");
-  });
-
-  /* ---------- Actions ---------- */
   const preview = $("#preview");
   $("#fullBtn").onclick = () => { preview.classList.add("full"); document.body.classList.add("pv-full"); };
-  const exitFull = () => {
-    if (exampleKey || params.has("view")) { location.href = "/#gallery"; return; }
-    preview.classList.remove("full"); document.body.classList.remove("pv-full");
-  };
+  const exitFull = () => { preview.classList.remove("full"); document.body.classList.remove("pv-full"); };
   $("#exitFull").onclick = exitFull;
   addEventListener("keydown", (e) => { if (e.key === "Escape") exitFull(); });
-  $("#shareBtn").onclick = () => toast("🔗 Sharing unlocks when sign-up arrives. Coming soon!");
+
   $("#resetBtn").onclick = async () => {
-    if (!confirm("Delete your Jabari page and all its photos from this device?")) return;
+    if (!confirm("Clear your draft and its photos from this device? (Your published page stays online until you publish again.)")) return;
     urls.forEach((u) => URL.revokeObjectURL(u)); urls.clear();
-    state = { ...DEFAULTS, images: [], heroId: null };
+    state = { ...DEFAULTS, images: [], heroId: null, publishedIds: state.publishedIds, dirty: false };
     fillForm(); renderThumbs(); render(); save();
     toast("Fresh start 🧼");
   };
 
-  /* ---------- Boot ---------- */
-  (async () => {
-    const ex = exampleKey && exampleState(exampleKey);
-    if (ex) {
-      state = { ...DEFAULTS, ...ex };
-      document.body.classList.add("example-mode");
-      document.title = `${ex.name} ${ex.line2} · Example Jabari`;
-    } else {
+  /* ---------- Account + publishing ---------- */
+  let me = { signedIn: false }, published = null;
+
+  function showPubStatus() {
+    const el = $("#pubStatus"); if (!el || !me.handle) return;
+    if (!published) el.textContent = "Not published yet.";
+    else if (state.dirty) el.textContent = "⚠️ You've made changes since you last published.";
+    else el.innerHTML = `✅ Published as <b>${published.visibility === "public" ? "🌍 Public" : "🔒 Private"}</b>. <a href="/j/${me.handle}">View it →</a>`;
+  }
+
+  // Upload new photos, remove deleted ones, then save the page.
+  async function publish() {
+    const btn = $("#publishBtn");
+    if (!state.name && !state.images.length) return toast("Add a name or some photos first!");
+    btn.disabled = true; btn.textContent = "⏳ Publishing…";
+    try {
+      for (const img of state.images) {
+        if (img.serverId) continue;
+        const res = await fetch("/api/images", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: img.blob });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "A photo didn't upload.");
+        img.serverId = data.id;
+      }
+      const keep = new Set(state.images.map((i) => i.serverId));
+      for (const id of state.publishedIds || []) {
+        if (!keep.has(id)) await api(`/api/images?id=${encodeURIComponent(id)}`, undefined, "DELETE");
+      }
+      const hero = state.images.find((i) => i.id === state.heroId);
+      const page = {
+        name: state.name, line2: state.line2, tagline: state.tagline, theme: state.theme,
+        sticker0: state.sticker0, sticker1: state.sticker1, sticker2: state.sticker2,
+        bubbles: state.bubbles, moods: state.moods,
+        images: state.images.map((i) => i.serverId), heroId: hero?.serverId || null,
+      };
+      const r = await api("/api/mypage", { page, visibility: state.visibility }, "PUT");
+      if (!r.ok) throw new Error(r.error);
+      state.publishedIds = [...keep]; state.dirty = false;
+      published = { visibility: r.visibility };
+      save({ edited: false }); showPubStatus();
+      toast(r.visibility === "public" ? "🚀 You're live! Your Jabari is on the home page." : "🔒 Saved privately. Only you can see it.");
+    } catch (err) {
+      toast("😬 " + (err.message || "Publishing failed. Try again."));
+    } finally {
+      btn.disabled = false; btn.textContent = "🚀 Publish";
+    }
+  }
+  $("#publishBtn").onclick = publish;
+
+  $("#shareBtn").onclick = async () => {
+    if (!me.handle) return toast("Sign up and claim your name to get a link.");
+    if (published?.visibility !== "public") return toast("Publish as Public first so people can open your link.");
+    const link = `${location.origin}/j/${me.handle}`;
+    try { await navigator.clipboard.writeText(link); toast("🔗 Link copied!"); } catch { toast(link); }
+  };
+
+  // Signed in on a new device: pull the published page down as the starting draft.
+  async function importPublished(p) {
+    const images = [];
+    for (const img of p.images) {
       try {
-        const saved = await DB.get("me");
-        if (saved) state = { ...DEFAULTS, ...saved, images: saved.images || [] };
+        const blob = await fetch(img.url, { credentials: "same-origin" }).then((r) => (r.ok ? r.blob() : Promise.reject()));
+        images.push({ id: crypto.randomUUID(), blob, serverId: img.id });
       } catch {}
     }
+    const hero = images.find((i) => i.serverId === p.heroId);
+    state = {
+      ...DEFAULTS, name: p.name, line2: p.line2, tagline: p.tagline, theme: p.theme,
+      sticker0: p.sticker0, sticker1: p.sticker1, sticker2: p.sticker2, bubbles: p.bubbles, moods: p.moods,
+      visibility: p.visibility, images, heroId: hero?.id || images[0]?.id || null,
+      publishedIds: images.map((i) => i.serverId), dirty: false,
+    };
+    fillForm(); renderThumbs(); render(); save({ edited: false });
+  }
+
+  async function loadAccount() {
+    me = await api("/api/me");
+    if (!me.signedIn) return;
+    $("#publishSignedOut").hidden = true;
+    if (!me.handle) {
+      $("#publishSignedOut").hidden = false;
+      $("#publishSignedOut").innerHTML = `<p class="help">You're signed in. Claim your Jabari name to publish.</p><a href="/signup" class="btn btn-lime">🏁 Claim my name</a>`;
+      return;
+    }
+    $("#publishSignedIn").hidden = false;
+    $("#myLink").textContent = `arijabari.com/j/${me.handle}`;
+    const r = await api("/api/mypage");
+    if (r.ok && r.page) {
+      published = { visibility: r.page.visibility };
+      if (isEmpty(state)) await importPublished(r.page);
+    }
+    showPubStatus();
+  }
+
+  /* ---------- Boot ---------- */
+  (async () => {
+    try {
+      const saved = await DB.get("me");
+      if (saved) state = { ...DEFAULTS, ...saved, images: saved.images || [], publishedIds: saved.publishedIds || [] };
+    } catch {}
     fillForm(); renderThumbs(); render();
-    // ?example=… and ?view open straight into the full-screen page
-    if (ex || params.has("view")) $("#fullBtn").click();
+    await loadAccount();
+    if (params.has("view")) $("#fullBtn").click();
   })();
 })();

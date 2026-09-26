@@ -35,7 +35,7 @@
       <p class="live-pill"><span class="dot"></span> BETA</p>
       <h1 class="sec-title"><span>CREATE</span> YOUR OWN JABARI</h1>
       <p class="sec-sub">Build a page of pure nonsense. Your faces. Your gibberish. Your rules.</p>
-      <p class="local-note">🔒 Your page is saved <b>only on this device</b> for now. Sharing is coming soon.</p>
+      <p class="local-note">💾 Your draft saves on this device as you go. Hit <b>Publish</b> to put it online.</p>
       <p class="local-note acct-note" id="acctNote"></p>
     </section>
 
@@ -90,11 +90,28 @@
           </label>
         </fieldset>
 
+        <fieldset class="publish" id="publishBox">
+          <legend><span>6</span> Publish</legend>
+          <div id="publishSignedOut">
+            <p class="help">Want other people to see your Jabari? Sign up, claim your name, and publish it.</p>
+            <a href="/signup" class="btn btn-lime">✨ Sign up to publish</a>
+          </div>
+          <div id="publishSignedIn" hidden>
+            <p class="help">Your link: <b id="myLink"></b></p>
+            <div class="vis-toggle" role="radiogroup" aria-label="Who can see your Jabari">
+              <label><input type="radio" name="visibility" value="public"> <span>🌍 <b>Public</b><small>Anyone can see it, it shows on the home page, people can follow you</small></span></label>
+              <label><input type="radio" name="visibility" value="private"> <span>🔒 <b>Private</b><small>Only you can see it</small></span></label>
+            </div>
+            <button type="button" class="btn btn-hot" id="publishBtn">🚀 Publish</button>
+            <p class="pub-status" id="pubStatus" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
         <p class="help safety">🛡️ Keep it fun and keep it safe. Don't add your full name, address, school, phone number, or anything that says where you are.</p>
 
         <div class="editor-actions">
           <button type="button" class="btn btn-hot" id="fullBtn">👀 Full-screen preview</button>
-          <button type="button" class="btn btn-ghost" id="shareBtn">🔗 Share</button>
+          <button type="button" class="btn btn-ghost" id="shareBtn">🔗 Copy my link</button>
           <button type="button" class="btn btn-ghost danger" id="resetBtn">🗑️ Start over</button>
         </div>
         <p class="saved" id="savedNote" aria-live="polite"></p>
@@ -105,47 +122,7 @@
         <p class="preview-label">LIVE PREVIEW</p>
         <div class="preview" id="preview">
           <button class="exit-full" id="exitFull" aria-label="Close preview">✕</button>
-          <div class="jb" id="jb">
-            <div class="jb-hero">
-              <h2 class="jb-title"><span class="l1" id="pvName"></span><span class="l2" id="pvLine2"></span></h2>
-              <p class="jb-tag" id="pvTag"></p>
-              <div class="jb-face-wrap">
-                <button class="jb-face" id="pvFace" aria-label="Click to change face"></button>
-                <div class="jb-bubble" id="pvBubble"></div>
-                <span class="jb-sticker k0" id="pvS0"></span>
-                <span class="jb-sticker k1" id="pvS1"></span>
-                <span class="jb-sticker k2" id="pvS2"></span>
-                <div class="jb-count"><span id="pvCount">0</span> faces pulled</div>
-              </div>
-            </div>
-
-            <div class="jb-ticker"><div class="jb-ticker-track" id="pvTicker"></div></div>
-
-            <section class="jb-sec">
-              <h3>MOOD ROULETTE</h3>
-              <div class="jb-roulette">
-                <div class="jb-slot" id="pvSlot"></div>
-                <p class="jb-mood" id="pvMood">Press spin. If you dare.</p>
-                <button class="btn btn-lime jb-spin" id="pvSpin">🎰 SPIN</button>
-              </div>
-            </section>
-
-            <section class="jb-sec">
-              <h3>THE FACE WALL</h3>
-              <div class="jb-wall" id="pvWall"></div>
-            </section>
-
-            <section class="jb-sec">
-              <h3>GIBBERISH GENERATOR</h3>
-              <div class="jb-gib">
-                <p id="pvGib">"So basically right, the toaster looked at me funny."</p>
-                <button class="btn btn-hot" id="pvGibBtn">🌀 Generate</button>
-              </div>
-            </section>
-
-            <div class="pv-cta"><p>This is an example page.</p><a href="/create" class="btn btn-lime">✨ Make your own Jabari</a></div>
-            <p class="jb-foot">Made with <b>Create Your Own Jabari</b> · arijabari.com</p>
-          </div>
+          <div id="jb"></div>
         </div>
       </div>
     </div>

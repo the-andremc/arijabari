@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Jabari</title>
+  <meta name="description" content="A page of pure nonsense on arijabari.com">
+  <meta name="theme-color" content="#0d0b1a">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ari">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/create.css">
+</head>
+<body class="jview">
+  <header class="nav">
+    <a href="/" class="logo">ARI<span>JABARI</span></a>
+    <nav>
+      <a href="/#gallery">Gallery</a>
+      <a href="/create">Create</a>
+    </nav>
+    <a href="/signup" class="acct-btn" id="accountLink">Sign up</a>
+  </header>
+
+  <main>
+    <div id="jb" hidden></div>
+    <div class="jv-missing" id="missing" hidden>
+      <div class="done-burst">🫥</div>
+      <h1 class="auth-title">NO JABARI <span>HERE</span></h1>
+      <p class="auth-sub">This Jabari doesn't exist, or it's private.</p>
+      <a href="/#gallery" class="btn btn-hot">👀 See all Jabaris</a>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="/data.js"></script>
+  <script src="/jabari.js"></script>
+  <script src="/jview.js"></script>
+  <script src="/account.js"></script>
+</body>
+</html>
